@@ -12,7 +12,7 @@ The counter4pybr.py and counter5pybr.py files are library files that contain the
 
 The UsageSweep.py file is actually the source code for the monthly usage collection applicatio currently used at the University of North Texas libraries for monthly SUSHI data collection. It supports collection of JR1, JR2, BR1, BR2, DB1, DB2, MR1, TR(J1,J2,J3,BR1,BR2,BR3), and DR_D1 reports via SUSHI from a usage credentials database. This can be  adjusted to read in credentials from an Excel or CSV file by adjusting the query in lines 17, 18. If a database is being used, then the address will need to be configured in the first three variables in the VariablesReference file. The reports are also currently uploaded directly to a usage database with a table for each report type (all TR sub-reports reside together on a TR table), but these can be adjusted to print to a .csv/.xlsx file by making adding a readout to the sweep() file just prior to database uploading. The UsageSweep file is intended to be either useful to libraries matching the setup at the Universit of North Texas, or instructional in potential uses of the PySUSHI system for institutions hoping to implement part of the PySushi system or take ideas for their own projects.
 
-the requirements.txt file is a dependency file for users utilizing a virtualenv for execution of the PySUSHI system.
+The requirements.txt file is a dependency file for users utilizing a virtualenv for execution of the PySUSHI system.
 
 
 
