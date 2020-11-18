@@ -1,6 +1,17 @@
 from Counter5pybr import *
 from Counter4pybr import *
 
+"""
+This file is the main codebase for the quarterly sweep/harvest of all SUSHI data for the UNT Libraries.
+Running this file with "python3 UsageSweep.py" command will run this as a standalone tool, and the basic GUI will be displayed, along with the operating terminal window.
+This file is also configured so that it can be included in functional scripts for usage collection, where it only needs to be included with the code "from UsageSweep import *".
+	NOTE: This method of scripting requires that the UsageSweep.py file be saved to either your script's working directory or the Scripts/site-packages folder of your python3 installation.
+
+Operating this for a complete usage sweep requires that the database tables that receive each file have a matching schema to the sample tables available in the PySUSHI Release 1 folder, 
+but this can be circumvented by including the "db_commit=False" argument in the sweep() call, which will cause the usage to only be collected and displayed or saved.
+"""
+
+
 ##Set global variables
 MONTH = 0
 YEAR = 0
