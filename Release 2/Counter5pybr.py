@@ -1,7 +1,7 @@
 '''
 Author: 				Chris Hergert
 Date Created: 			10/1/2019
-Date Last Modified:		12/13/2019
+Date Last Modified:		11/11/2020
 Created under Open Commons III License for The University Of North Texas Libraries
 '''
 from BaseLibPybr import *
@@ -9,7 +9,7 @@ from BaseLibPybr import *
 
 class Counter5Report:
 	
-	def __init__(self, year, month, report, url, requestor_id, customer_reference, platform_name = None, api_key = None, request_lowercase = '-', data_type = None, access_type = None, print_url = False, trecnum = None):
+	def __init__(self, year, month, report, url, requestor_id, customer_reference, platform_name = None, api_key = None, request_lowercase = '-', data_type = None, access_type = None, print_url = False, trecnum = None, platform_param = '-'):
 		###=======================================================================================================
 		###Initilize flags to None.
 		self.data_type_filter = None
@@ -23,11 +23,15 @@ class Counter5Report:
 		if report in report_set:
 			self.valid_report = True
 			if (report == "TR_J3"): self.colset = TR_COLUMNS
-			if (report == "DR_D1"): self.colset = DR_D1_COLUMNS
-			if (report == "TR_B3"): self.colset = TR_COLUMNS
 			if (report == "TR"): self.colset = TR_COLUMNS
+			if (report == "DR_D1"): self.colset = DR_D1_COLUMNS
+			if (report == "DR"): self.colset = DR_D1_COLUMNS
+			if (report == "TR_B3"): self.colset = TR_COLUMNS
 			if (report == "TR_J2"): self.colset = TR_COLUMNS
 			if (report == "TR_B2") : self.colset = TR_COLUMNS
+			if (report == "TR_J"): self.colset = TR_COLUMNS
+			if (report == "TR_B") : self.colset = TR_COLUMNS
+			if (report == "IR_M1") : self.colset = IR_COLUMNS
 			
 			## Now that the colset is init'ed, generate the empty dataframe
 			self.reportDF = pd.DataFrame(columns = self.colset)
@@ -48,6 +52,7 @@ class Counter5Report:
 		#
 		###=======================================================================================================
 		###  Initialize the server request params
+		print(year, month)
 		start_date = datetime.date(year,month,1)
 		end_date = datetime.date(year, month, calendar.monthrange(year,month)[1])
 		frame_platform_name(platform_name)
@@ -58,24 +63,28 @@ class Counter5Report:
 				"begin_date": start_date,
 				"end_date": end_date,
 			}
-		if requestor_id != '-' and requestor_id != None:
+		if requestor_id != '-' and requestor_id:
 			req_params["requestor_id"] = requestor_id
 			
-		if customer_reference != '-' and customer_reference != None:
+		if customer_reference != '-' and customer_reference:
 			req_params["customer_id"] = customer_reference
 			
-		if api_key != '-' and api_key != None:
+		if api_key != '-' and api_key:
 			if "&platform" in api_key:
-				req_params["api_key"] = api_key.split("&platform=")[0]
-				req_params["platform"] = api_key.split("&platform=")[1]
+				if api_key.split("&platform=")[0]:
+					req_params["api_key"] = api_key.split("&platform=")[0]
+				if api_key.split("&platform=")[1]:
+					req_params["platform"] = api_key.split("&platform=")[1]
 				self.platformNeededFlag = True
 			else:
 				req_params["api_key"] = api_key
-		
+		if platform_param != '-' and platform_param != None:
+			req_params["platform"] = platform_param
 		if self.data_type_filter != None:
 			req_params["Data_Type"] = self.data_type_filter
 		if self.access_type_filter != None:
 			req_params["Access_Type"] = self.access_type_filter
+		
 		###=======================================================================================================
 		### Make the initial server request, then save it as 'response'
 		if self.platformNeededFlag == True:
@@ -98,13 +107,11 @@ class Counter5Report:
 			headers={"User-Agent": "UNT_LUC"},
 			verify=True,
 		)
-		#self.repo = response.json()
-		#pprint(self.repo)
-		#self.drd1parse(report)
+
 		###=======================================================================================================
 		### Convert the request response from a JSON load into a python dictionary.
 		try:
-			self.repo = response.json()
+			self.repo = (self.response).json()
 			#pprint(self.repo) #print the entire report, in the raw JSON-tree format.
 
 			## If there's a fatal exception at the top level, e.g. "the requestor is not authorized to access usage for this institution"
@@ -133,32 +140,37 @@ class Counter5Report:
 						self.data_type_filter = "Journal"
 						self.trparse(report)
 						self.reportDF.insert(4, 'TRecNum', trecnum)
-					if report.upper() == "DR_D1":
+					elif report.upper() == "DR_D1":
 						self.drd1parse(report)
-						#self.reportDF.insert(4, 'TRecNum', trecnum)
-					if report.upper() == "TR":
-						self.trparse(report)
+						self.reportDF.insert(3, 'TRecNum', trecnum)
+					elif report.upper() == "DR":
+						#pass
+						self.drd1parse(report)
+						self.reportDF.insert(3, 'TRecNum', trecnum)
+					elif report.upper() == "TR":
+						self.fulltrparse(report)
 						self.reportDF.insert(4, 'TRecNum', trecnum)
-					if report.upper() == "TR_B3":
+					elif report.upper() == "TR_B3":
 						self.data_type_filter = "Book"
 						self.trparse(report)
 						self.reportDF.insert(4, 'TRecNum', trecnum)
-					if report.upper() == "TR_B2":
+					elif report.upper() == "TR_B2":
 						self.data_type_filter = "Book"
 						self.trparse(report)
 						self.reportDF.insert(4, 'TRecNum', trecnum)
-					if report.upper() == "TR_J2":
+					elif report.upper() == "TR_J2":
 						self.data_type_filter = "Journal"
 						self.trparse(report)
+						self.reportDF.insert(4, 'TRecNum', trecnum)
+					elif report.upper() == "IR_M1":
+						self.irparse(report)
 						self.reportDF.insert(4, 'TRecNum', trecnum)
 				except:
 					logging.warning("Parsing error")
 		except:
 			######## (10/22/2019) TO-DO: change this to actually logging the errors to an output file as well as console-logging
 			logging.warning("report json conversion failed.")
-			print_url = True
-			#pprint(response) 			#print the raw JSON tree of the error tree.
-			#print(response.content)
+		print_url = True
 		if (print_url == True) : print(response.request.url)	#print the request string URL.
 		#pprint(self.reportDF)			#print the output dataframe.
 	###################################################################################################################################################################################################
@@ -207,7 +219,81 @@ class Counter5Report:
 					temp[self.colset.index("Metric_Type")] = instance["Metric_Type"]
 					temp[self.colset.index("Count")] = instance["Count"]
 					self.reportDF.loc[len(self.reportDF)] = temp
-		
+	#
+	def fulltrparse(self, report_type):
+		## Loop through the book/journal nodes
+		for report_item in self.repo['Report_Items']:
+			
+			## Generate a fresh tuple of row length and populate it with the top-level identifiers
+			temp = [''] * len(self.colset)
+			temp[self.colset.index('Title')] = report_item['Title']
+			temp[self.colset.index('Platform')] = report_item['Platform']
+			
+			## If a filter is applied, use this to populate the Date_Type column.
+			if self.access_type_filter != None:
+				temp[self.colset.index("Access_Type")] = self.access_type_filter
+			if self.data_type_filter != None:
+				temp[self.colset.index("Data_Type")] = self.data_type_filter
+			## Look for Publisher and Access_Type nodes, and populate the column if present.
+			for label in ["Publisher", "Access_Type"]:
+				try:
+					temp[self.colset.index(label)] = report_item[label]
+				except:
+					pass
+			
+			## Check for an Item_ID subtree, and populate from it if one is included.
+			try:
+				for id in report_item['Item_ID']:
+					try:
+						temp[self.colset.index(id['Type'])] = id['Value']
+					except:
+						pass
+			except:
+				pass
+				
+			## Populate the Metric_Type fields and counts, and then load each of these nodes to the dataframe.
+			for perfnode in report_item["Performance"]:
+				try:
+					temp[self.colset.index("Date")] = perfnode["Period"]["Begin_Date"]
+					for instance in perfnode["Instance"]:
+						try:
+							temp[self.colset.index("Metric_Type")] = instance["Metric_Type"]
+							temp[self.colset.index("Count")] = instance["Count"]
+							self.reportDF.loc[len(self.reportDF)] = temp
+						except:
+							pass
+				except:
+					pass
+
+	###################################################################################################################################################################################################
+	###
+	###################################################################################################################################################################################################
+	def irparse(self, report_type):
+		## Loop through the book/journal nodes
+		for report_item in self.repo['Report_Items']:
+			temp = [''] * len(self.colset)
+			temp[self.colset.index('Item')] = report_item['Item']
+			try:
+				temp[self.colset.index('Platform')] = report_item['Platform']
+				temp[self.colset.index('Publisher')] = report_item['Publisher']
+				
+				## Populate the Metric_Type fields and counts, and then load each of these nodes to the dataframe.
+				for perfnode in report_item["Performance"]:
+				
+					## Attempt to set the date via the begin_date included in the JSON load.
+					try:
+						temp[self.colset.index("Date")] = perfnode["Period"]["Begin_Date"]
+					except:
+						pass
+					
+					##Collect the Metric_Type coding information and the count of that metric.
+					for instance in perfnode["Instance"]:
+						temp[self.colset.index("Metric_Type")] = instance["Metric_Type"]
+						temp[self.colset.index("Count")] = instance["Count"]
+						self.reportDF.loc[len(self.reportDF)] = temp
+			except:
+				pass
+	
 	###################################################################################################################################################################################################
 	###
 	###################################################################################################################################################################################################
