@@ -14,7 +14,7 @@ numpy==1.17.3
 openpyxl==3.0.2
 pandas==0.25.2
 pendulum==2.0.5
-Pillow==6.2.1
+Pillow==9.3.0
 PyAutoGUI==0.9.48
 PyGetWindow==0.0.7
 PyMsgBox==1.0.7
